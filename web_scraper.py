@@ -3,40 +3,69 @@ from bs4 import BeautifulSoup as bs
 import os
 from urllib.parse import urljoin, urlparse
 import re
+import tkinter as tk
+from tkinter import filedialog, ttk, Button
+from tkinter.scrolledtext import ScrolledText
+from tkinter.ttk import Progressbar
 
-#give option to enter what url it is
-def get_url_input():
-    print("===Web Scraper - Hyperlink Download===\n")
-    enter_url = input('Enter the URL to scrape: ').strip()
-    if not enter_url.startswith(("http://", "https://")):
-        url = "https://" + enter_url
+#assigning globals
+root = tk.Tk()
+root.title("Hyperlink Download")
+root.geometry("620x520")
+root.resizable(False, False)
+url_var = tk.StringVar()
+folder_var = tk.StringVar()
+output: ScrolledText = None
+btn: Button = None
+progress: Progressbar = None
 
-    folder = input("Enter a file path to download the files (press Enter for user downloads): ").strip()
-    if not folder:
-        folder = './downloads'
+#begin functions
+def browse_folder():
+    folder = filedialog.askdirectory()
+    if folder:
+        folder_var.set(folder)
+
+def log(msg):
+    output.config(state="normal")
+    output.insert(tk.END, msg + "\n")
+    output.see(tk.END)
+    output.config(state="disabled")
+
+def download_start():
+    url = url_var.get().strip()
+    folder = folder_var.get().strip()
+
+    if not url:
+        log("Enter a URL: ")
+        return
     
-    return url, folder
+    if not folder:
+        log("Select a download location folder: ")
+        return
+    
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
 
-def get_downloads(url, folder):
-    os.makedirs(folder, exists_ok=True)
-    print(f"\nFetching page: {url}")
-    headers = {"User-Agent": "Mozilla/5.0"} #http for modern browsers
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
+    btn.config(state="disabled")
+    progress.start()
+    threading.Thread(target=run_scraper, args=(url, folder), daemon=True).start()
 
-    get_soup = bs(response.text, "html.parser")
-    links = get_soup.find_all("a", href=True)
-    print(f"Found {len(links)} hyperlinks.\n")
 
-    downloaded, skipped = 0, 0
+def run_scraper(url, folder):
+    try:
+        os.makedirs(folder, exist_ok=True)
+        log(f"Getting: {url}")
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
 
-    for link in links:
-        href = link["href"]
-        full_url = urljoin(url, href) #handle partial urls
+        soup = bs(response.text, "html.parser")
+        links = soup.find_all("a", href=True)
+        log(f"Found {len(links)} hyperlinks.\n")
 
-        if not full_url.startswith(("http://", "https://")):
-            skipped += 1
-            continue
+        downloaded, skipped = 0, 0
+
+        for link in links:
 
 
 
