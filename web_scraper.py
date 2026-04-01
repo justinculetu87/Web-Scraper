@@ -34,20 +34,9 @@ def get_downloads(url, folder):
         href = link["href"]
         full_url = urljoin(url, href) #handle partial urls
 
+        if not full_url.startswith(("http://", "https://")):
+            skipped += 1
+            continue
 
 
 
-
-
-
-
-def get_soup(url):  #define function to get the files
-    return bs(requests.get(url).text, 'html.parser')
-
-for link in get_soup(enter_url).find_all('a'):
-    file_link = link.get('href')
-    if file_type in file_link:
-        print(file_link)
-        with open(link.text, 'wb') as file:
-            response = requests.get(enter_url + file_link)
-            file.write(response.content)
